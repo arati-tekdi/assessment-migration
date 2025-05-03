@@ -1,0 +1,93 @@
+{
+  "request": {
+    "data": {
+      "nodesModified": {
+        "757b4ed0-c972-4971-941e-68bb5b61d643": {
+          "metadata": {
+            "mimeType": "application/vnd.sunbird.question",
+            "media": [],
+            "editorState": {
+              "options": [
+                { "value": { "body": "<p>101</p>", "value": 0 } },
+                { "value": { "body": "<p>105</p>", "value": 1 } }
+              ],
+              "question": "<p>arrange</p>"
+            },
+            "templateId": "asq-vertical",
+            "answer": "<div class='answer-container'><div class='answer-body'><p>101</p></div><div class='answer-body'><p>105</p></div></div>",
+            "maxScore": 1,
+            "name": "Arrange",
+            "responseDeclaration": {
+              "response1": {
+                "cardinality": "ordered",
+                "type": "integer",
+                "correctResponse": { "value": [0, 1] },
+                "mapping": [
+                  { "value": 0, "score": 0.5 },
+                  { "value": 1, "score": 0.5 }
+                ]
+              }
+            },
+            "outcomeDeclaration": {
+              "maxScore": {
+                "cardinality": "ordered",
+                "type": "integer",
+                "defaultValue": 1
+              },
+              "hint": {
+                "cardinality": "single",
+                "type": "string",
+                "defaultValue": "b5c6b5d1-de20-454c-90b8-2b9dcd4ceff1"
+              }
+            },
+            "interactionTypes": ["order"],
+            "interactions": {
+              "response1": {
+                "type": "order",
+                "options": [
+                  { "label": "<p>101</p>", "value": 0 },
+                  { "label": "<p>105</p>", "value": 1 }
+                ],
+                "validation": { "required": "Yes" }
+              }
+            },
+            "qType": "ASQ",
+            "primaryCategory": "Arrange Sequence Question",
+            "body": "<div class='question-body' tabindex='-1'><div class='asq-title' tabindex='0'><p>arrange</p></div><div data-order-interaction='response1' class='asq-vertical'></div></div>",
+            "solutions": {},
+            "createdBy": "82470f1e-0154-48d2-aa2c-407b42b3c83f",
+            "subject": ["English"],
+            "domain": "Learning for School",
+            "subDomain": ["Academics"],
+            "program": ["Pragyanpath", "Vocational Training"],
+            "author": "sanket patil",
+            "channel": "pos-channel",
+            "framework": "pos-framework",
+            "license": "CC BY 4.0",
+            "visibility": "Default"
+          },
+          "objectType": "Question",
+          "root": false,
+          "isNew": true
+        }
+      },
+      "hierarchy": {
+        "do_214302433656496128152": {
+          "name": "QuestionSet1",
+          "children": ["do_214302447227068416153"],
+          "root": true
+        },
+        "do_214302447227068416153": {
+          "name": "Section1",
+          "children": [
+            "do_214302447996002304155",
+            "do_214302449237639168157",
+            "do_214302450266136576159",
+            "757b4ed0-c972-4971-941e-68bb5b61d643"
+          ],
+          "root": false
+        }
+      }
+    }
+  }
+}

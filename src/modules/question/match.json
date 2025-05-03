@@ -1,0 +1,111 @@
+{
+  "request": {
+    "data": {
+      "nodesModified": {
+        "1d299a0c-1d86-4e5d-83fc-554c64b15e0f": {
+          "metadata": {
+            "mimeType": "application/vnd.sunbird.question",
+            "media": [],
+            "editorState": {
+              "options": {
+                "left": [
+                  { "value": { "body": "<p>Red</p>", "value": 0 } },
+                  { "value": { "body": "<p>Yellow</p>", "value": 1 } }
+                ],
+                "right": [
+                  { "value": { "body": "<p>Apple</p>", "value": 0 } },
+                  { "value": { "body": "<p>Banana</p>", "value": 1 } }
+                ]
+              },
+              "question": "<p>Match color and fruit</p>"
+            },
+            "templateId": "mtf-vertical",
+            "maxScore": 1,
+            "name": "Match ",
+            "responseDeclaration": {
+              "response1": {
+                "cardinality": "multiple",
+                "type": "map",
+                "correctResponse": {
+                  "value": [
+                    { "left": 0, "right": [0] },
+                    { "left": 1, "right": [1] }
+                  ]
+                },
+                "mapping": [
+                  { "value": { "left": 0, "right": 0 }, "score": 0.5 },
+                  { "value": { "left": 1, "right": 1 }, "score": 0.5 }
+                ]
+              }
+            },
+            "outcomeDeclaration": {
+              "maxScore": {
+                "cardinality": "multiple",
+                "type": "integer",
+                "defaultValue": 1
+              },
+              "hint": {
+                "cardinality": "single",
+                "type": "string",
+                "defaultValue": "433f6a99-1b66-4ed4-9d4f-a99be9621853"
+              }
+            },
+            "interactionTypes": ["match"],
+            "interactions": {
+              "response1": {
+                "type": "match",
+                "options": {
+                  "left": [
+                    { "label": "<p>Red</p>", "value": 0 },
+                    { "label": "<p>Yellow</p>", "value": 1 }
+                  ],
+                  "right": [
+                    { "label": "<p>Apple</p>", "value": 0 },
+                    { "label": "<p>Banana</p>", "value": 1 }
+                  ]
+                },
+                "validation": { "required": "Yes" }
+              }
+            },
+            "qType": "MTF",
+            "primaryCategory": "Match The Following Question",
+            "body": "<div class='question-body' tabindex='-1'><div class='mtf-title' tabindex='0'><p>Match color and fruit</p></div><div data-match-interaction='response1' class='mtf-vertical'></div></div>",
+            "answer": "<div class='match-container'><div class='left-options'><div class='left-option'><p>Red</p></div><div class='left-option'><p>Yellow</p></div></div><div class='right-options'><div class='right-option'><p>Apple</p></div><div class='right-option'><p>Banana</p></div></div></div>",
+            "solutions": {},
+            "createdBy": "82470f1e-0154-48d2-aa2c-407b42b3c83f",
+            "subject": ["English"],
+            "domain": "Learning for School",
+            "subDomain": ["Academics"],
+            "program": ["Pragyanpath", "Vocational Training"],
+            "author": "sanket patil",
+            "channel": "pos-channel",
+            "framework": "pos-framework",
+            "license": "CC BY 4.0",
+            "visibility": "Default"
+          },
+          "objectType": "Question",
+          "root": false,
+          "isNew": true
+        }
+      },
+      "hierarchy": {
+        "do_214302433656496128152": {
+          "name": "QuestionSet1",
+          "children": ["do_214302447227068416153"],
+          "root": true
+        },
+        "do_214302447227068416153": {
+          "name": "Section1",
+          "children": [
+            "do_214302447996002304155",
+            "do_214302449237639168157",
+            "do_214302450266136576159",
+            "do_214302452977467392161",
+            "1d299a0c-1d86-4e5d-83fc-554c64b15e0f"
+          ],
+          "root": false
+        }
+      }
+    }
+  }
+}

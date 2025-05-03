@@ -1,0 +1,86 @@
+{
+  "request": {
+    "data": {
+      "nodesModified": {
+        "16a5bbea-32c2-4f15-a178-4c5eeb977aef": {
+          "metadata": {
+            "mimeType": "application/vnd.sunbird.question",
+            "media": [],
+            "editorState": {
+              "options": [
+                { "answer": true, "value": { "body": "<p>4</p>", "value": 0 } },
+                { "answer": false, "value": { "body": "<p>6</p>", "value": 1 } }
+              ],
+              "question": "<p>2+2 = ?</p>"
+            },
+            "templateId": "mcq-vertical",
+            "answer": "<div class='answer-container'><div class='answer-body'><p>4</p></div></div>",
+            "maxScore": 1,
+            "name": "2+2",
+            "responseDeclaration": {
+              "response1": {
+                "cardinality": "single",
+                "type": "integer",
+                "correctResponse": { "value": 0 },
+                "mapping": [{ "value": 0, "score": 1 }]
+              }
+            },
+            "outcomeDeclaration": {
+              "maxScore": {
+                "cardinality": "single",
+                "type": "integer",
+                "defaultValue": 1
+              },
+              "hint": {
+                "cardinality": "single",
+                "type": "string",
+                "defaultValue": "bd5cc0a5-4275-4761-95e1-74bf9af4781c"
+              }
+            },
+            "interactionTypes": ["choice"],
+            "interactions": {
+              "response1": {
+                "type": "choice",
+                "options": [
+                  { "label": "<p>4</p>", "value": 0, "hint": "" },
+                  { "label": "<p>6</p>", "value": 1, "hint": "" }
+                ],
+                "validation": { "required": "Yes" }
+              }
+            },
+            "hints": {},
+            "qType": "MCQ",
+            "primaryCategory": "Multiple Choice Question",
+            "body": "<div class='question-body' tabindex='-1'><div class='mcq-title' tabindex='0'><p>2+2 = ?</p></div><div data-choice-interaction='response1' class='mcq-vertical'></div></div>",
+            "solutions": {},
+            "createdBy": "82470f1e-0154-48d2-aa2c-407b42b3c83f",
+            "subject": ["English"],
+            "domain": "Learning for School",
+            "subDomain": ["Academics"],
+            "program": ["Pragyanpath", "Vocational Training"],
+            "author": "sanket patil",
+            "channel": "pos-channel",
+            "framework": "pos-framework",
+            "license": "CC BY 4.0",
+            "visibility": "Default"
+          },
+          "objectType": "Question",
+          "root": false,
+          "isNew": true
+        }
+      },
+      "hierarchy": {
+        "do_214302433656496128152": {
+          "name": "QuestionSet1",
+          "children": ["do_214302447227068416153"],
+          "root": true
+        },
+        "do_214302447227068416153": {
+          "name": "Section1",
+          "children": ["16a5bbea-32c2-4f15-a178-4c5eeb977aef"],
+          "root": false
+        }
+      }
+    }
+  }
+}
