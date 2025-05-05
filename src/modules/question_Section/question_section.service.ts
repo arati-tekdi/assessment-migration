@@ -7,7 +7,7 @@ import { HttpService } from "@nestjs/axios";
 import { ConfigService } from "@nestjs/config";
 import axios from "axios";
 import { QuestionSet } from "./question_section.entity";
-import { channel } from "diagnostics_channel";
+import { fs } from "fs";
 
 interface QuestionSetInput {
   language: any;
@@ -296,6 +296,11 @@ export class QuestionSectionService {
         records[0].questionSetId
       );
 
+      //map questions to sections
+      const resultOfQuestionMapping = await this.mapQuestionsToSections(
+        recordIds
+      );
+
       //publish questionset
       // const result = await this.questionSetPublish(records[0].questionSetId);
       // this.logger.log(
@@ -327,82 +332,7 @@ export class QuestionSectionService {
       });
     }
   }
-  //   buildQuestionSetRequest(input: QuestionSetInput): any {
-  //     let programArr = [];
-  //     let subjectArr = [];
-  //     let subDomainArr = [];
-  //     let targetAgeGroupArr = [];
-  //     let primaryUserArr = [];
-  //     programArr.push(input.program);
-  //     subjectArr.push(input.subject);
-  //     subDomainArr.push(input.subDomain);
-  //     targetAgeGroupArr.push("18 yrs +");
-  //     primaryUserArr.push("Learners/Children");
 
-  //     console.log("programArr: ", programArr);
-  //     console.log("subjectArr: ", subjectArr);
-  //     console.log("subDomainArr: ", subDomainArr);
-  //     console.log("targetAgeGroupArr: ", targetAgeGroupArr);
-  //     console.log("primaryUserArr: ", primaryUserArr);
-  // let programValue = JSON.parse(JSON.stringify(programArr));
-  // console.log("programValue: ",programValue)
-  //     const reqObj: any = {
-  //       request: {
-  //         data: {
-  //           nodesModified: {
-  //             [input.questionSetId]: {
-  //               root: true,
-  //               objectType: "QuestionSet",
-  //               metadata: {
-  //                 appIcon: "",
-  //                 name: input.testName,
-  //                 program: new Array(input.program),
-  //                 subject: JSON.stringify(subjectArr),
-  //                 subDomain: JSON.stringify(subDomainArr),
-  //                 targetAgeGroup:JSON.stringify(targetAgeGroupArr),
-  //                 primaryUser: JSON.stringify(primaryUserArr),
-  //                 showTimer: true,
-  //                 requiresSubmit: "Yes",
-  //                 author: "",
-  //                 primaryCategory: "Practice Question Set",
-  //                 attributions: [],
-  //                 timeLimits: {
-  //                   questionSet: {
-  //                     max: 0,
-  //                     min: 0,
-  //                   },
-  //                 },
-  //                 description: input.description ? input.description : "NA",
-  //                 instructions: "<p>NA</p>",
-  //                 assessmentType: input.assessmentType + " Test", //check this
-  //                 domain: input.domain,
-  //                 contentLanguage: input.language,
-  //                 maxAttempts: input.maxAttempts ? input.maxAttempts : 0,
-  //                 summaryType: "Complete",
-  //                 outcomeDeclaration: {
-  //                   maxScore: {
-  //                     cardinality: "single",
-  //                     type: "integer",
-  //                     defaultValue: 0,
-  //                   },
-  //                 },
-  //               },
-  //               isNew: false,
-  //             },
-  //           },
-  //           hierarchy: {
-  //             [input.questionSetId]: {
-  //               name: input.testName,
-  //               children: [],
-  //               root: true,
-  //             },
-  //           },
-  //           lastUpdatedBy: this.configService.get("USER_ID"),
-  //         },
-  //       },
-  //     };
-  //     return reqObj;
-  //   }
   buildQuestionSetRequest(input: QuestionSetInput): any {
     const {
       program,
@@ -663,5 +593,66 @@ export class QuestionSectionService {
       .set({ test_do_id: newValue })
       .where("id IN (:...ids)", { ids }) // Use the spread operator to pass the list of IDs
       .execute();
+  }
+  async mapQuestionsToSections(recordIds: number[]): Promise<void> {
+    try {
+      //fetch records of question setions in recordIds
+      const questionSetions = await this.questionSectionRepo
+        .createQueryBuilder("QuestionSet")
+        .where("QuestionSet.id IN (:...ids)", { ids: recordIds })
+        .getMany();
+      for (const section of questionSetions) {
+        const rootId = section.test_do_id;
+        const collectionId = section.sections_do_Ids[0];
+        const children = section.questions_do_Ids;
+        const endpoint = `${this.configService.get(
+          "INTERFACE_BASE_URL"
+        )}/action/questionset/v2/add`;
+        const payload = {
+          request: {
+            questionset: {
+              rootId: rootId,
+              collectionId: collectionId,
+              children: children,
+            },
+          },
+        };
+        const mapQuestionsToSectionResponse = await axios.patch(
+          endpoint,
+          payload,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${this.configService.get("TOKEN")}`,
+              tenantid: this.configService.get("TENANT_ID"),
+              "X-Channel-Id": this.configService.get("CHANNEL_ID"),
+            },
+          }
+        );
+        this.logger.log(
+          "mapQuestionsToSectionResponse: ",
+          mapQuestionsToSectionResponse.data
+        );
+      }
+    } catch (error) {
+      this.logger.error("Error in mapQuestionsToSections", error);
+      throw error;
+    }
+  }
+  private logError(message: string) {
+    const logDir = path.join(__dirname, "../../logs");
+    const logFile = path.join(logDir, "migration.log");
+    const logEntry = `[${new Date().toISOString()}] ${message}\n`;
+
+    // ✅ Ensure /logs directory exists
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir);
+    }
+
+    // ✅ Create log file if it doesn't exist and append log entries
+    fs.appendFileSync(logFile, logEntry);
+
+    // ✅ Log to console
+    console.error(message);
   }
 }
