@@ -23,24 +23,12 @@ export class QuestionService {
   async generateQuestionRequestBodyMCQ(record: any) {
     if (!record) throw new Error("Question not found");
 
-    // const options = Object.entries(record)
-    //   .filter(
-    //     ([key, value]) =>
-    //       /^option\d+$/.test(key) && value !== null && value !== undefined
-    //   )
-    //   .sort(([aKey], [bKey]) => {
-    //     const aNum = parseInt(aKey.replace("option", ""), 10);
-    //     const bNum = parseInt(bKey.replace("option", ""), 10);
-    //     return aNum - bNum;
-    //   })
-    //   .map(([, value]) => value);
-
     let options = [];
     for (let i = 0; i <= 3; i++) {
       const key = `option${i}`;
       const rawValue = record[key];
-      console.log("type:", typeof rawValue);
-      console.log("rawValue: ", rawValue);
+      this.logger.log("type:", typeof rawValue);
+      this.logger.log("rawValue: ", rawValue);
       if (rawValue) options.push(rawValue);
     }
 
@@ -81,7 +69,7 @@ export class QuestionService {
           templateId: "mcq-vertical",
           answer: `<div class='answer-container'><div class='answer-body'><p>${options[ansIndex]}</p></div></div>`,
           maxScore: record.maxScore,
-          name: record.name,
+          name: record.question,
           responseDeclaration: {
             response1: {
               cardinality: "single",
@@ -194,7 +182,7 @@ export class QuestionService {
           maxScore: record.maxScore,
           media: [] as any,
           mimeType: "application/vnd.sunbird.question",
-          name: record.name,
+          name: record.question,
           outcomeDeclaration: {
             maxScore: {
               cardinality: "ordered",
@@ -325,7 +313,7 @@ export class QuestionService {
           maxScore: record.maxScore,
           media: [] as any,
           mimeType: "application/vnd.sunbird.question",
-          name: record.name,
+          name: record.question,
           outcomeDeclaration: {
             maxScore: {
               cardinality: "multiple",
@@ -365,25 +353,33 @@ export class QuestionService {
       try {
         let details;
         console.log("record.questionType ", record.questionType);
-        let recordTypeArr = ["MCQ", "Match", "Arrange"];
+        let recordTypeArr = [
+          "MULTIPLE CHOICE",
+          "TRUE OR FALSE",
+          "MATCHING PAIR",
+          "ARRANGE SEQUENCE",
+        ];
         if (!recordTypeArr.includes(record.questionType)) {
           this.logger.error(`Error invalid type of question`, record);
           return;
         }
         // check type of record
-        if (record.questionType == "MCQ") {
+        if (
+          record.questionType == "MULTIPLE CHOICE" ||
+          record.questionType == "TRUE OR FALSE"
+        ) {
           const request = await this.generateQuestionRequestBodyMCQ(record);
           details = {
             request: request,
             dbId: record.id,
           };
-        } else if (record.questionType == "Match") {
+        } else if (record.questionType == "MATCHING PAIR") {
           const request = await this.generateQuestionRequestBodyMatch(record);
           details = {
             request: request,
             dbId: record.id,
           };
-        } else if (record.questionType == "Arrange") {
+        } else if (record.questionType == "ARRANGE SEQUENCE") {
           const request = await this.generateQuestionRequestBodyArrange(record);
           details = {
             request: request,
@@ -445,7 +441,7 @@ export class QuestionService {
     await this.questionRepo.update(id, obj);
   }
 
-  async migrateQuestion(limit = 5) {
+  async migrateQuestion(limit = 3) {
     try {
       this.logger.log(`Starting question import with limit: ${limit}`);
 
