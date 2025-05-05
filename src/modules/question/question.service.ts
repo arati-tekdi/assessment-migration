@@ -445,14 +445,14 @@ export class QuestionService {
     await this.questionRepo.update(id, obj);
   }
 
-  async migrateQuestion(limit = 1) {
+  async migrateQuestion(limit = 5) {
     try {
       this.logger.log(`Starting question import with limit: ${limit}`);
 
       // ✅ Fetch questions from `Questions` table with migrated value 0
       const questions = await this.questionRepo.query(`
         SELECT *
-        FROM Questions 
+        FROM QuestionsData 
         WHERE isMigrated = 0
         LIMIT ${limit}
     `);

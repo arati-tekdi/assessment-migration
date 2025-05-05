@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
 
-@Entity("Questions") // Table name in MySQL
+@Entity("QuestionsData") // Table name in MySQL
 export class QuestionEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -50,4 +50,12 @@ export class QuestionEntity {
   questionType: string;
   @Column({ nullable: true })
   language: string;
+  @Column({ nullable: true })
+  testName: string;
+  @Column({ nullable: true })
+  sectionName: string;
+  @Column({ nullable: true })
+  description: string;
+  @Column({ nullable: true })
+  program: string;
 }

@@ -1,40 +1,49 @@
-import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity("QuestionSection")
-export class QuestionSectionEntity {
+@Entity("QuestionSet")
+export class QuestionSet {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true })
-  SectionName: string;
+  @Column({ type: "varchar", length: 255, nullable: true })
+  testName: string;
 
-  @Column("text", { nullable: true })
-  Description: string;
+  @Column({ type: "varchar", length: 100, nullable: true })
+  test_do_id: string;
 
-  @Column({ nullable: true })
-  Program: string;
+  @Column({ type: "varchar", nullable: true })
+  sectionName: string;
 
-  @Column({ nullable: true })
-  Domain: string;
+  @Column({ type: "json", nullable: true })
+  sections_do_Ids: string[];
 
-  @Column({ nullable: true })
-  SubDomain: string;
+  @Column({ type: "tinyint", width: 1, default: 0 })
+  isMigrated: number;
 
-  @Column({ nullable: true })
-  Subjects: string;
+  @Column({ type: "varchar", length: 255, nullable: true })
+  domain: string;
 
-  @Column({ nullable: true })
-  ContentLanguage: string;
+  @Column({ type: "varchar", length: 255, nullable: true })
+  subDomain: string;
 
-  @Column("text", { nullable: true })
-  Instruction: string;
+  @Column({ type: "varchar", length: 255, nullable: true })
+  program: string;
 
-  @Column({ nullable: true })
-  AssessmentType: string;
+  @Column({ type: "varchar", length: 255, nullable: true })
+  subject: string;
 
-  @Column({ nullable: true })
-  CourseName: string;
+  @Column({ type: "varchar", length: 1000, nullable: true })
+  description: string;
 
-  @Column({ nullable: true })
-  TestName: string;
+  @Column({ type: "varchar", length: 100, nullable: true })
+  language: string;
+
+  @Column({ type: "text", nullable: true })
+  instruction: string;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  assessmentType: string;
+
+  @Column({ type: "json", nullable: true })
+  questions_do_Ids: string[];
 }
