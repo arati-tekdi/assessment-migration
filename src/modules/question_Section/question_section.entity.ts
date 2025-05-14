@@ -46,4 +46,7 @@ export class QuestionSet {
 
   @Column({ type: "json", nullable: true })
   questions_do_Ids: string[];
+
+  @Column({ type: "int", default: 0 })
+  total_maxscore: number;
 }

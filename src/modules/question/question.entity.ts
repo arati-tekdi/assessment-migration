@@ -8,19 +8,19 @@ export class QuestionEntity {
   @Column({ nullable: true })
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 2000 })
   question: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 2000 })
   option0: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 2000 })
   option1: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 2000 })
   option2: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 2000 })
   option3: string;
 
   @Column({ nullable: true })
@@ -40,7 +40,7 @@ export class QuestionEntity {
   do_id: string; // domain id
   @Column({ nullable: true })
   versionKey: string; // version key
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: "int", default: 0 })
   isMigrated: number;
   @Column({ nullable: true })
   assessmentType: string;

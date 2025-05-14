@@ -10,6 +10,7 @@ import { QuestionSet } from "./question_section.entity";
 import * as fs from "fs";
 
 interface QuestionSetInput {
+  total_maxscore: any;
   sectionName: string;
   language: any;
   subDomain: any;
@@ -32,6 +33,7 @@ interface QuestionSetInput {
   lastUpdatedBy: string;
 }
 interface SectionInput {
+  total_maxscore: any;
   sectionName: any;
   questionSetId: any;
   parentQuestionSetId: string;
@@ -252,7 +254,7 @@ export class QuestionSectionService {
           `Step 4.Questions mapped to the section Successfully, for DB record id: ${record.id}`
         );
         //Step 5.publish questionset
-        const result = await this.questionSetPublish(records[0].questionSetId);
+        const result = await this.questionSetPublish(record.questionSetId);
         this.logger.log(
           `Step 5. Question set published successfully for ${record.questionSetId}`
         );
@@ -285,8 +287,15 @@ export class QuestionSectionService {
         language,
         maxAttempts,
         questionSetId,
+        total_maxscore,
       } = input;
+      let questionSetName;
+      //
 
+      if (this.configService.get("PROGRAM") === "Vocational Learning")
+        questionSetName = input.testName;
+      else questionSetName = input.sectionName + " " + input.testName;
+      //let programString = program + "".trimEnd();
       const reqObj: any = {
         request: {
           data: {
@@ -296,8 +305,8 @@ export class QuestionSectionService {
                 objectType: "QuestionSet",
                 metadata: {
                   appIcon: "",
-                  name: input.sectionName + " " + input.testName,
-                  program: new Array(`${input.program}`),
+                  name: questionSetName,
+                  program: ["Vocational Learning"],
                   subject: Array.isArray(subject) ? subject : [subject],
                   subDomain: Array.isArray(subDomain) ? subDomain : [subDomain],
                   targetAgeGroup: ["18 yrs +"],
@@ -319,12 +328,12 @@ export class QuestionSectionService {
                   domain,
                   contentLanguage: language,
                   maxAttempts: maxAttempts || 0,
-                  summaryType: "Complete",
+                  summaryType: "Score & Duration",
                   outcomeDeclaration: {
                     maxScore: {
                       cardinality: "single",
                       type: "integer",
-                      defaultValue: 0,
+                      defaultValue: input.total_maxscore,
                     },
                   },
                 },
@@ -362,8 +371,8 @@ export class QuestionSectionService {
         visibility: "Parent",
         primaryCategory: "Practice Question Set",
         shuffle: true,
-        showFeedback: true,
-        showSolutions: true,
+        showFeedback: false,
+        showSolutions: false,
         attributions: [],
         timeLimits: {
           questionSet: {
@@ -371,8 +380,8 @@ export class QuestionSectionService {
             min: 0,
           },
         },
-        description: "",
-        instructions: "",
+        description: "NA",
+        instructions: "NA",
       },
       isNew: true,
     };
@@ -396,8 +405,8 @@ export class QuestionSectionService {
       metadata: {
         name: records[0].sectionName,
         shuffle: true,
-        showFeedback: true,
-        showSolutions: true,
+        showFeedback: false,
+        showSolutions: false,
         primaryCategory: "Practice Question Set",
         attributions: [],
         timeLimits: {
@@ -452,8 +461,8 @@ export class QuestionSectionService {
           visibility: "Parent",
           primaryCategory: "Practice Question Set",
           shuffle: true,
-          showFeedback: true,
-          showSolutions: true,
+          showFeedback: false,
+          showSolutions: false,
           attributions: [],
           timeLimits: {
             questionSet: {
@@ -461,8 +470,8 @@ export class QuestionSectionService {
               min: 0,
             },
           },
-          description: "",
-          instructions: "",
+          description: "NA",
+          instructions: "NA",
         },
         isNew: true,
       };
@@ -474,7 +483,7 @@ export class QuestionSectionService {
             maxScore: {
               cardinality: "single",
               type: "integer",
-              defaultValue: 0,
+              defaultValue: input.total_maxscore,
             },
           },
         },
@@ -633,24 +642,28 @@ export class QuestionSectionService {
         mapQuestionsToSectionResponse.data
       );
     } catch (error) {
-      this.logger.error("Error in mapQuestionsToSections", error);
+      this.logError(`Error in mapQuestionsToSections ${error}`);
       throw error;
     }
   }
   private logError(message: string) {
-    const logDir = path.join(__dirname, "../../logs");
+    const logDir = path.join(process.cwd(), "logs");
     const logFile = path.join(logDir, "migration.log");
     const logEntry = `[${new Date().toISOString()}] ${message}\n`;
 
-    // ✅ Ensure /logs directory exists
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir);
+    try {
+      // Ensure /logs directory exists
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+
+      // Create log file if it doesn't exist and append log entries
+      fs.appendFileSync(logFile, logEntry);
+
+      // Log to console
+      console.error(message);
+    } catch (err) {
+      console.error("Failed to write to log file:", err);
     }
-
-    // ✅ Create log file if it doesn't exist and append log entries
-    fs.appendFileSync(logFile, logEntry);
-
-    // ✅ Log to console
-    console.error(message);
   }
 }

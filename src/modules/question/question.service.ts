@@ -7,7 +7,7 @@ import * as path from "path";
 import { HttpService } from "@nestjs/axios";
 import { ConfigService } from "@nestjs/config";
 import axios from "axios";
-import { stringify } from "querystring";
+import * as fs from "fs";
 
 @Injectable()
 export class QuestionService {
@@ -237,6 +237,9 @@ export class QuestionService {
           options.push(parsed);
         } catch (err) {
           console.warn(`❌ Failed to parse ${key}:`, err);
+          this.logError(
+            `Failed to parse ${key} : ${err} in generateQuestionRequestBodyMatch`
+          );
         }
       }
     }
@@ -390,10 +393,8 @@ export class QuestionService {
         console.log("details: ", JSON.stringify(details));
         allRequests.push(details);
       } catch (error) {
-        this.logger.error(
-          `Error generating request for record:`,
-          record,
-          error
+        this.logError(
+          `Error generating request for record: ${record}, ${error}`
         );
       }
     }
@@ -420,18 +421,14 @@ export class QuestionService {
           await this.publishQuestion(response.data.result.identifier, req.dbId);
           return { index, status: "success", data: response.data };
         } catch (error: any) {
-          this.logger.error(
-            `❌ [${index}] Error:`,
-            error.response?.data || error.message
+          console.log(
+            "error.response.data.result: ",
+            error.response.data.result
           );
+          this.logError(`❌ [${index}] Error: ${error.message}`);
           await this.updateQuestionInDB(req.dbId, {
             isMigrated: 2,
           });
-          return {
-            index,
-            status: "error",
-            error: error.response?.data || error.message,
-          };
         }
       })
     );
@@ -466,7 +463,7 @@ export class QuestionService {
 
       this.logger.log(`3. ✅ All questions imported successfully.`);
     } catch (error: any) {
-      this.logger.error(`❌ Error in createQuestion:`, error);
+      this.logError(`❌ Error in createQuestion: ${error}`);
     }
   }
   async publishQuestion(doId: string, dbId: number) {
@@ -498,17 +495,34 @@ export class QuestionService {
 
       return { status: "success", data: response.data };
     } catch (error: any) {
-      this.logger.error(
-        `❌  Error: while publish ${doId} and dbId ${dbId}`,
-        error.response?.data || error.message
+      this.logError(
+        `❌  Error: while publish ${doId} and dbId ${dbId} ${error.message}`
       );
       await this.updateQuestionInDB(dbId, {
         isMigrated: 2,
       });
-      return {
-        status: "error",
-        error: error.response?.data || error.message,
-      };
+    }
+  }
+  private logError(message: string) {
+    const logDir = path.join(process.cwd(), "logs");
+    const logFile = path.join(logDir, "migration.log");
+    const logEntry = `[${new Date().toISOString()}] ${message}\n`;
+
+    console.log("logFile", logFile);
+    console.log("logDir", logDir);
+    try {
+      // Ensure /logs directory exists
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+
+      // Create log file if it doesn't exist and append log entries
+      fs.appendFileSync(logFile, logEntry);
+
+      // Log to console
+      console.error(message);
+    } catch (err) {
+      console.error("Failed to write to log file:", err);
     }
   }
 }
