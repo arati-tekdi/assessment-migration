@@ -438,7 +438,7 @@ export class QuestionService {
     await this.questionRepo.update(id, obj);
   }
 
-  async migrateQuestion(limit = 3) {
+  async migrateQuestion(limit = 20) {
     try {
       this.logger.log(`Starting question import with limit: ${limit}`);
 
@@ -471,20 +471,26 @@ export class QuestionService {
       "INTERFACE_BASE_URL"
     )}/action/question/v2/publish/${doId}`;
     try {
-      const response = await axios.post(
-        endpoint,
-        {
-          request: {
-            question: {},
-          },
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            tenantId: this.configService.get("TENANT_ID"),
-            Authorization: `Bearer ${this.configService.get("TOKEN")}`,
-          },
-        }
+      const response = await this.retryRequest(
+        () =>
+          axios.post(
+            endpoint,
+            {
+              request: {
+                question: {},
+              },
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                tenantId: this.configService.get("TENANT_ID"),
+                Authorization: `Bearer ${this.configService.get("TOKEN")}`,
+              },
+            }
+          ),
+        3,
+        2000,
+        "Publish Question"
       );
       this.logger.log(`4. ✅ publish Success:`, response.data.result);
       await this.updateQuestionInDB(dbId, {
@@ -524,5 +530,57 @@ export class QuestionService {
     } catch (err) {
       console.error("Failed to write to log file:", err);
     }
+  }
+  private async retryRequest<T>(
+    fn: () => Promise<T>,
+    retries = 3,
+    delayMs = 2000,
+    label = "API"
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const result = await fn();
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`⚠️ ${label} attempt ${attempt} failed: ${message}`);
+        if (attempt < retries) {
+          await new Promise((res) => setTimeout(res, delayMs));
+        } else {
+          this.handleApiError(label, error);
+          throw error;
+        }
+      }
+    }
+    throw new Error(`${label} failed after ${retries} retries`);
+  }
+  private handleApiError(
+    methodName: string,
+    error: unknown,
+    contentId?: string
+  ) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    const logMessage =
+      `❌ API Error in ${methodName}: ${errorMessage}` +
+      (contentId ? ` (Content ID: ${contentId})` : "");
+
+    // ✅ Print error in console for debugging
+    console.error(logMessage);
+
+    // ✅ Log error to file
+    this.logErrorToFile(logMessage);
+  }
+  private logErrorToFile(logMessage: string): void {
+    const logFilePath = path.join(process.cwd(), "error.log"); // Ensures log is in a fixed location
+
+    // ✅ Write log to `error.log`
+    fs.appendFile(
+      logFilePath,
+      `${new Date().toISOString()} - ${logMessage}\n`,
+      (err) => {
+        if (err) console.error("❌ Failed to write to error.log", err);
+      }
+    );
   }
 }

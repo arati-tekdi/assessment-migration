@@ -173,17 +173,19 @@ export class QuestionSectionService {
         };
 
         //Step 1.create questionSet
-        const createSetResponse = await axios.post(
-          endpointCreate,
-          createSetPayload,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${this.configService.get("TOKEN")}`,
-              tenantid: this.configService.get("TENANT_ID"),
-              "X-Channel-Id": this.configService.get("CHANNEL_ID"),
-            },
-          }
+        const createSetResponse = await this.retryRequest(
+          () =>
+            axios.post(endpointCreate, createSetPayload, {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${this.configService.get("TOKEN")}`,
+                tenantid: this.configService.get("TENANT_ID"),
+                "X-Channel-Id": this.configService.get("CHANNEL_ID"),
+              },
+            }),
+          3,
+          2000,
+          "Create Set"
         );
 
         record.questionSetId = createSetResponse.data.result.identifier;
@@ -195,17 +197,19 @@ export class QuestionSectionService {
           this.buildQuestionSetRequest(record)
         );
         this.logger.log("payloadSetUpdate: ", payloadSetUpdate);
-        const updateSetResponse = await axios.patch(
-          endpointUpdate,
-          payloadSetUpdate,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              "X-Channel-Id": this.configService.get("CHANNEL_ID"),
-              Authorization: `Bearer ${this.configService.get("TOKEN")}`,
-              tenantid: this.configService.get("TENANT_ID"),
-            },
-          }
+        const updateSetResponse = await this.retryRequest(
+          () =>
+            axios.patch(endpointUpdate, payloadSetUpdate, {
+              headers: {
+                "Content-Type": "application/json",
+                "X-Channel-Id": this.configService.get("CHANNEL_ID"),
+                Authorization: `Bearer ${this.configService.get("TOKEN")}`,
+                tenantid: this.configService.get("TENANT_ID"),
+              },
+            }),
+          3,
+          2000,
+          "Update Set"
         );
         this.logger.log(
           `Step 2.Question set updated successfully ${record.questionSetId}`
@@ -221,17 +225,19 @@ export class QuestionSectionService {
         const payloadCreateSection =
           this.buildFirstQuestionSectionRequest(record);
 
-        const createSectionResponse = await axios.patch(
-          endpointUpdate,
-          payloadCreateSection,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${this.configService.get("TOKEN")}`,
-              tenantid: this.configService.get("TENANT_ID"),
-              "X-Channel-Id": this.configService.get("CHANNEL_ID"),
-            },
-          }
+        const createSectionResponse = await this.retryRequest(
+          () =>
+            axios.patch(endpointUpdate, payloadCreateSection, {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${this.configService.get("TOKEN")}`,
+                tenantid: this.configService.get("TENANT_ID"),
+                "X-Channel-Id": this.configService.get("CHANNEL_ID"),
+              },
+            }),
+          3,
+          2000,
+          "Create Section"
         );
         this.logger.log("createSectionResponse: ", createSectionResponse.data);
         const identifiers = createSectionResponse.data.result.identifiers;
@@ -292,7 +298,7 @@ export class QuestionSectionService {
       let questionSetName;
       //
 
-      if (this.configService.get("PROGRAM") === "Vocational Learning")
+      if (this.configService.get("PROGRAM") === "Vocational Training")
         questionSetName = input.testName;
       else questionSetName = input.sectionName + " " + input.testName;
       //let programString = program + "".trimEnd();
@@ -306,7 +312,7 @@ export class QuestionSectionService {
                 metadata: {
                   appIcon: "",
                   name: questionSetName,
-                  program: ["Vocational Learning"],
+                  program: [input.program],
                   subject: Array.isArray(subject) ? subject : [subject],
                   subDomain: Array.isArray(subDomain) ? subDomain : [subDomain],
                   targetAgeGroup: ["18 yrs +"],
@@ -625,17 +631,19 @@ export class QuestionSectionService {
           },
         },
       };
-      const mapQuestionsToSectionResponse = await axios.patch(
-        endpoint,
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.configService.get("TOKEN")}`,
-            tenantid: this.configService.get("TENANT_ID"),
-            "X-Channel-Id": this.configService.get("CHANNEL_ID"),
-          },
-        }
+      const mapQuestionsToSectionResponse = await this.retryRequest(
+        () =>
+          axios.patch(endpoint, payload, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${this.configService.get("TOKEN")}`,
+              tenantid: this.configService.get("TENANT_ID"),
+              "X-Channel-Id": this.configService.get("CHANNEL_ID"),
+            },
+          }),
+        3,
+        2000,
+        "Map Section and questions"
       );
       this.logger.log(
         "mapQuestionsToSectionResponse: ",
@@ -665,5 +673,60 @@ export class QuestionSectionService {
     } catch (err) {
       console.error("Failed to write to log file:", err);
     }
+  }
+  private async retryRequest<T>(
+    fn: () => Promise<T>,
+    retries = 3,
+    delayMs = 2000,
+    label = "API"
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const result = await fn();
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`⚠️ ${label} attempt ${attempt} failed: ${message}`);
+        if (attempt < retries) {
+          await new Promise((res) => setTimeout(res, delayMs));
+        } else {
+          this.handleApiError(label, error);
+          throw error;
+        }
+      }
+    }
+    throw new Error(`${label} failed after ${retries} retries`);
+  }
+  private handleApiError(
+    methodName: string,
+    error: unknown,
+    contentId?: string
+  ) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    const logMessage =
+      `❌ API Error in ${methodName}: ${errorMessage}` +
+      (contentId ? ` (Content ID: ${contentId})` : "");
+
+    // ✅ Print error in console for debugging
+    console.error(logMessage);
+
+    // ✅ Log error to file
+    this.logErrorToFile(logMessage);
+  }
+  private logErrorToFile(logMessage: string): void {
+    const logFilePath = path.join(process.cwd(), "error.log"); // Ensures log is in a fixed location
+
+    // ✅ Write log to `error.log`
+    fs.appendFile(
+      logFilePath,
+      `${new Date().toISOString()} - ${logMessage}\n`,
+      (err) => {
+        if (err) console.error("❌ Failed to write to error.log", err);
+      }
+    );
+  }
+  async getQuestionSectionById(id: number): Promise<QuestionSet | null> {
+    return this.questionSectionRepo.findOne({ where: { id } });
   }
 }
