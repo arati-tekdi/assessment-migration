@@ -95,6 +95,21 @@ interface RequestBody {
     };
   };
 }
+interface SectionInput {
+  id: string;
+  name: string;
+  description: string;
+}
+
+interface CreateRequestInput {
+  doId: string;
+  userId: string;
+  questionSetName: string;
+  questionSetDescription: string;
+  author: string;
+  contentLanguage: string;
+  sections: SectionInput[];
+}
 
 @Injectable()
 export class QuestionSectionService {
@@ -157,130 +172,191 @@ export class QuestionSectionService {
         "INTERFACE_BASE_URL"
       )}/action/questionset/v2/hierarchy/update`;
 
-      for (const record of records) {
-        const createSetPayload = {
-          request: {
-            questionset: {
-              name: record.sectionName + " " + record.testName,
-              mimeType: "application/vnd.sunbird.questionset",
-              primaryCategory: "Practice Question Set",
-              code: uuidv4(),
-              createdBy: this.configService.get("USER_ID"),
-              framework: this.configService.get("FRAMEWORK_ID"),
-              channel: this.configService.get("CHANNEL_ID"),
-            },
+      //for (const record of records) {
+      const createSetPayload = {
+        request: {
+          questionset: {
+            name: records[0].sectionName + " " + records[0].testName,
+            mimeType: "application/vnd.sunbird.questionset",
+            primaryCategory: "Practice Question Set",
+            code: uuidv4(),
+            createdBy: this.configService.get("USER_ID"),
+            framework: this.configService.get("FRAMEWORK_ID"),
+            channel: this.configService.get("CHANNEL_ID"),
           },
+        },
+      };
+
+      //Step 1.create questionSet
+      const createSetResponse = await this.retryRequest(
+        () =>
+          axios.post(endpointCreate, createSetPayload, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${this.configService.get("TOKEN")}`,
+              tenantid: this.configService.get("TENANT_ID"),
+              "X-Channel-Id": this.configService.get("CHANNEL_ID"),
+            },
+          }),
+        3,
+        2000,
+        "Create Set"
+      );
+
+      records[0].questionSetId = createSetResponse.data.result.identifier;
+      this.logger.log(
+        `Step 1. Question set created successfully ${records[0].questionSetId}`
+      );
+      //Step 2.Update set
+      const payloadSetUpdate = JSON.stringify(
+        this.buildQuestionSetRequest(records[0])
+      );
+      this.logger.log("payloadSetUpdate: ", payloadSetUpdate);
+      const updateSetResponse = await this.retryRequest(
+        () =>
+          axios.patch(endpointUpdate, payloadSetUpdate, {
+            headers: {
+              "Content-Type": "application/json",
+              "X-Channel-Id": this.configService.get("CHANNEL_ID"),
+              Authorization: `Bearer ${this.configService.get("TOKEN")}`,
+              tenantid: this.configService.get("TENANT_ID"),
+            },
+          }),
+        3,
+        2000,
+        "Update Set"
+      );
+      if (updateSetResponse.status !== 200) {
+        this.logError(
+          `Error in updating question set ${records[0].questionSetId} - ${updateSetResponse.statusText}`
+        );
+        throw new Error(
+          `Failed to update question set ${records[0].questionSetId}`
+        );
+      }
+      this.logger.log(
+        `Step 2.Question set updated successfully ${records[0].questionSetId}`
+      );
+      const updateTestDoId = await this.updateTestDoId(
+        records[0].questionSetId,
+        records.map((record: any) => record.id)
+      );
+
+      this.logger.log(
+        "Question set updated in DB successfully: ",
+        records[0].questionSetId
+      );
+      let sectionArr: any[] = [];
+      for (const record of records) {
+        record.uuid = uuidv4();
+        let tempSection = {
+          id: record.uuid,
+          name: record.sectionName,
+          description: record.description || "NA",
         };
+        sectionArr.push(tempSection);
+      }
+      let questionSetName = "";
+      if (this.configService.get("PROGRAM") === "Vocational Training")
+        questionSetName = records[0].testName;
+      else questionSetName = records[0].sectionName + " " + records[0].testName;
+      let input = {
+        doId: records[0].questionSetId,
+        userId: this.configService.get("USER_ID"),
+        questionSetName: questionSetName,
+        questionSetDescription: records[0].description || "NA",
+        contentLanguage: records[0].language,
+        author: "Manas",
+        sections: sectionArr,
+      };
+      //create all set
+      const payloadAllSections = JSON.stringify(
+        this.createQuestionSetRequest(input)
+      );
+      this.logger.log("payloadAllSections: ", payloadAllSections);
+      const createSectionsResponse = await this.retryRequest(
+        () =>
+          axios.patch(endpointUpdate, payloadAllSections, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${this.configService.get("TOKEN")}`,
+              tenantid: this.configService.get("TENANT_ID"),
+              "X-Channel-Id": this.configService.get("CHANNEL_ID"),
+            },
+          }),
+        3,
+        2000,
+        "Create Sections"
+      );
+      this.logger.log("createSectionResponse: ", createSectionsResponse.data);
+      const identifiers = createSectionsResponse.data.result.identifiers;
 
-        //Step 1.create questionSet
-        const createSetResponse = await this.retryRequest(
-          () =>
-            axios.post(endpointCreate, createSetPayload, {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${this.configService.get("TOKEN")}`,
-                tenantid: this.configService.get("TENANT_ID"),
-                "X-Channel-Id": this.configService.get("CHANNEL_ID"),
-              },
-            }),
-          3,
-          2000,
-          "Create Set"
-        );
+      const newSectionsArr: any = this.mapSectionIdentifiers(
+        records,
+        identifiers
+      );
+      this.logger.log(
+        `Step 3.Question section created successfully ${JSON.stringify(
+          newSectionsArr
+        )}`
+      );
+      await this.updateDoIds(newSectionsArr);
 
-        record.questionSetId = createSetResponse.data.result.identifier;
-        this.logger.log(
-          `Step 1. Question set created successfully ${record.questionSetId}`
-        );
-        //Step 2.Update set
-        const payloadSetUpdate = JSON.stringify(
-          this.buildQuestionSetRequest(record)
-        );
-        this.logger.log("payloadSetUpdate: ", payloadSetUpdate);
-        const updateSetResponse = await this.retryRequest(
-          () =>
-            axios.patch(endpointUpdate, payloadSetUpdate, {
-              headers: {
-                "Content-Type": "application/json",
-                "X-Channel-Id": this.configService.get("CHANNEL_ID"),
-                Authorization: `Bearer ${this.configService.get("TOKEN")}`,
-                tenantid: this.configService.get("TENANT_ID"),
-              },
-            }),
-          3,
-          2000,
-          "Update Set"
-        );
-        this.logger.log(
-          `Step 2.Question set updated successfully ${record.questionSetId}`
-        );
-        const updateTestDoId = await this.updateTestDoId(record.questionSetId, [
-          record.id,
-        ]);
-        this.logger.log(
-          "Question set updated in DB successfully: ",
-          record.questionSetId
-        );
-        //Step 3.Create set
-        const payloadCreateSection =
-          this.buildFirstQuestionSectionRequest(record);
-
-        const createSectionResponse = await this.retryRequest(
-          () =>
-            axios.patch(endpointUpdate, payloadCreateSection, {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${this.configService.get("TOKEN")}`,
-                tenantid: this.configService.get("TENANT_ID"),
-                "X-Channel-Id": this.configService.get("CHANNEL_ID"),
-              },
-            }),
-          3,
-          2000,
-          "Create Section"
-        );
-        this.logger.log("createSectionResponse: ", createSectionResponse.data);
-        const identifiers = createSectionResponse.data.result.identifiers;
-
-        const sectionIdentifier: any = Object.entries(identifiers).find(
-          ([key, value]) => key !== value
-        )?.[1];
-        this.logger.log(
-          `Step 3.Question section created successfully ${sectionIdentifier}`
-        );
-        await this.questionSectionRepo.update(record.id, {
-          sections_do_Ids: [sectionIdentifier],
-        });
-
-        //Step 4.map questions to sections
+      //Step 4.map questions to sections
+      for (const record of newSectionsArr) {
         const resultOfQuestionMapping = await this.mapQuestionsToSection(
           record.id
         );
         this.logger.log(
-          `Step 4.Questions mapped to the section Successfully, for DB record id: ${record.id}`
+          `Section ${record.sectionName} mapped to doId: ${record.sections_do_Id}`
         );
-        //Step 5.publish questionset
-        const result = await this.questionSetPublish(record.questionSetId);
-        this.logger.log(
-          `Step 5. Question set published successfully for ${record.questionSetId}`
-        );
+      }
 
-        //update DB
+      this.logger.log(`Step 4.Questions mapped to the section Successfully`);
+      //Step 5.publish questionset
+      const result = await this.questionSetPublish(records[0].questionSetId);
+      this.logger.log(
+        `Step 5. Question set published successfully for ${records[0].questionSetId}`
+      );
+
+      //update DB
+      for (const record of records) {
         await this.questionSectionRepo.update(record.id, {
           isMigrated: 1,
         });
-
-        this.logger.log(
-          `Question set migrated successfully for ${record.testName} with id ${record.id} and setId ${record.questionSetId}`
-        );
       }
+
+      this.logger.log(
+        `Question set migrated successfully for ${records[0].testName} and setId ${records[0].questionSetId}`
+      );
+      //}
       return [];
     } catch (error: any) {
       this.logError(`Error in createQuestionSets ${error.message}`);
     }
   }
+  mapSectionIdentifiers(
+    sections: any[],
+    identifiers: Record<string, string>
+  ): SectionInput[] {
+    return sections.map((section) => {
+      const mappedId = identifiers[section.uuid];
+      return {
+        ...section,
+        sections_do_Id: mappedId || section.id, // fallback if no match found
+      };
+    });
+  }
+  async updateDoIds(records: any[]): Promise<any> {
+    for (const record of records) {
+      await this.questionSectionRepo.update(
+        { id: Number(record.id) },
+        { sections_do_Ids: [record.sections_do_Id] }
+      );
+    }
+  }
 
-  buildQuestionSetRequest(input: QuestionSetInput): any {
+  buildQuestionSetRequest(input: any): any {
     try {
       const {
         program,
@@ -297,7 +373,7 @@ export class QuestionSectionService {
       } = input;
       let questionSetName;
       //
-
+      input.program = input.program.trimEnd();
       if (this.configService.get("PROGRAM") === "Vocational Training")
         questionSetName = input.testName;
       else questionSetName = input.sectionName + " " + input.testName;
@@ -312,7 +388,7 @@ export class QuestionSectionService {
                 metadata: {
                   appIcon: "",
                   name: questionSetName,
-                  program: [input.program],
+                  program: [this.configService.get("PROGRAM")],
                   subject: Array.isArray(subject) ? subject : [subject],
                   subDomain: Array.isArray(subDomain) ? subDomain : [subDomain],
                   targetAgeGroup: ["18 yrs +"],
@@ -728,5 +804,102 @@ export class QuestionSectionService {
   }
   async getQuestionSectionById(id: number): Promise<QuestionSet | null> {
     return this.questionSectionRepo.findOne({ where: { id } });
+  }
+  createQuestionSetRequest(input: CreateRequestInput): any {
+    const {
+      doId,
+      userId,
+      questionSetName,
+      questionSetDescription,
+      author,
+      contentLanguage,
+      sections,
+    } = input;
+
+    let nodesModified: any = {};
+
+    let hierarchy: any = {};
+    hierarchy[doId] = {
+      name: questionSetName,
+      children: sections.map((section) => section.id),
+      root: true,
+    };
+
+    for (const section of sections) {
+      nodesModified[section.id] = {
+        root: false,
+        objectType: "QuestionSet",
+        metadata: {
+          mimeType: "application/vnd.sunbird.questionset",
+          code: section.id,
+          name: section.name,
+          visibility: "Parent",
+          primaryCategory: "Practice Question Set",
+          shuffle: true,
+          showFeedback: false,
+          showSolutions: false,
+          attributions: [],
+          timeLimits: {
+            questionSet: { max: 0, min: 0 },
+          },
+          description: section.description,
+        },
+        isNew: true,
+      };
+
+      hierarchy[section.id] = {
+        name: section.name,
+        children: [],
+        root: false,
+      };
+    }
+    hierarchy[doId] = {
+      name: questionSetName,
+      children: sections.map((section) => section.id),
+      root: true,
+    };
+    nodesModified[doId] = {
+      root: true,
+      objectType: "QuestionSet",
+      metadata: {
+        appIcon: "",
+        name: questionSetName,
+        program: ["Vocational Training"],
+        subject: ["Beauty"],
+        targetAgeGroup: ["18 yrs +"],
+        primaryUser: ["Learners/Children"],
+        showTimer: false,
+        requiresSubmit: "No",
+        author,
+        primaryCategory: "Practice Question Set",
+        attributions: [],
+        timeLimits: {
+          questionSet: { max: 0, min: 0 },
+        },
+        description: questionSetDescription,
+        domain: "Learning for Work",
+        subDomain: ["Career Exploration"],
+        contentLanguage,
+        assessmentType: "Post Test",
+        outcomeDeclaration: {
+          maxScore: {
+            cardinality: "single",
+            type: "integer",
+            defaultValue: 0,
+          },
+        },
+      },
+      isNew: false,
+    };
+
+    return {
+      request: {
+        data: {
+          nodesModified,
+          hierarchy,
+          lastUpdatedBy: userId,
+        },
+      },
+    };
   }
 }
