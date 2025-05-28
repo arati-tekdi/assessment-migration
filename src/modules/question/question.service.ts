@@ -442,6 +442,17 @@ export class QuestionService {
     try {
       this.logger.log(`Starting question import with limit: ${limit}`);
 
+      // Update query for quettions to migrated to 2 if migrated values is 0 and questionType IN ('MULTIPLE SELECT');
+      await this.questionRepo.query(`
+        UPDATE QuestionsData 
+        SET isMigrated = 2 
+        WHERE isMigrated = 0 AND questionType IN ('MULTIPLE SELECT')
+      `);
+      
+      this.logger.log(
+        `✅ Updated all MULTIPLE SELECT questions to isMigrated = 2`
+      );
+
       // ✅ Fetch questions from `Questions` table with migrated value 0
       const questions = await this.questionRepo.query(`
         SELECT *
